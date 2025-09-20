@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { FileText, BookOpen, History, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
   const menus = [
     {
       path: "/dokumen",
@@ -29,6 +33,33 @@ export default function Dashboard() {
     },
   ];
 
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallModal(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("User response:", outcome);
+    setDeferredPrompt(null);
+    setShowInstallModal(false);
+  };
+
+  const handleClose = () => {
+    setShowInstallModal(false);
+  };
+
   return (
     <div className="p-4 space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
@@ -52,6 +83,32 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Modal Install */}
+      {showInstallModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-2xl p-6 w-80 text-center shadow-lg">
+            <h2 className="text-lg font-semibold mb-2">Pasang Aplikasi</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Tambahkan aplikasi ini ke layar utama agar lebih mudah diakses
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleInstallClick}
+                className="px-4 py-2 bg-[#8B0000] text-white rounded-lg"
+              >
+                Install
+              </button>
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 bg-gray-200 rounded-lg"
+              >
+                Nanti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
