@@ -20,6 +20,7 @@ import ArtikelDetail from "./pages/ArtikelDetail";
 import DokumenDetail from "./pages/DokumenDetail";
 import SplashScreen from "./pages/SplashScreen";
 import PageWrapper from "./components/PageWrapper";
+import InstallBar from "./components/InstallBar";
 
 function AnimatedRoutes({ isLoggedIn, setIsLoggedIn }) {
   const location = useLocation();
@@ -115,11 +116,35 @@ function AnimatedRoutes({ isLoggedIn, setIsLoggedIn }) {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBar, setShowInstallBar] = useState(false);
 
+  // Splash screen timer
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBar(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      console.log("User choice:", choice);
+      setDeferredPrompt(null);
+      setShowInstallBar(false);
+    }
+  };
 
   return (
     <Router>
@@ -135,6 +160,11 @@ function App() {
               setIsLoggedIn={setIsLoggedIn}
             />
             {isLoggedIn && <BottomNav />}
+            <InstallBar
+              show={showInstallBar}
+              onClose={() => setShowInstallBar(false)}
+              onInstall={handleInstall}
+            />
           </>
         )}
       </AnimatePresence>
